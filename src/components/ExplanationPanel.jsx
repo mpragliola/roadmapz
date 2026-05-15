@@ -1,17 +1,7 @@
 import { useState, useEffect } from 'react';
+import { marked } from 'marked';
 
-function renderMarkdown(text) {
-  return text
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/^/, '<p>')
-    .replace(/$/, '</p>');
-}
+marked.use({ gfm: true, breaks: true });
 
 export default function ExplanationPanel({ nodeLabel, history, loading, onRegenerate, onClose }) {
   const [selectedIndex, setSelectedIndex] = useState(history.length - 1);
@@ -45,10 +35,23 @@ export default function ExplanationPanel({ nodeLabel, history, loading, onRegene
         </select>
       )}
 
-      <div
-        className="explanation-content"
-        dangerouslySetInnerHTML={{ __html: current ? renderMarkdown(current.content) : '' }}
-      />
+      {loading && !current && (
+        <div className="explanation-skeleton">
+          <div className="skeleton-line skeleton-line--wide" />
+          <div className="skeleton-line skeleton-line--medium" />
+          <div className="skeleton-line skeleton-line--wide" />
+          <div className="skeleton-line skeleton-line--short" />
+          <div className="skeleton-line skeleton-line--wide" />
+          <div className="skeleton-line skeleton-line--medium" />
+        </div>
+      )}
+
+      {current && (
+        <div
+          className="explanation-content"
+          dangerouslySetInnerHTML={{ __html: marked.parse(current.content) }}
+        />
+      )}
 
       <button
         className="regenerate-btn"
@@ -56,7 +59,11 @@ export default function ExplanationPanel({ nodeLabel, history, loading, onRegene
         disabled={loading}
         aria-label={loading ? 'Loading' : 'Regenerate'}
       >
-        {loading ? 'Loading...' : '↺ Regenerate'}
+        {loading ? (
+          <span className="btn-spinner-row"><span className="spinner-sm" /> Generating...</span>
+        ) : (
+          '↺ Regenerate'
+        )}
       </button>
     </div>
   );

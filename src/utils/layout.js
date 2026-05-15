@@ -1,57 +1,45 @@
-import dagre from '@dagrejs/dagre';
-
-const NODE_WIDTH = 220;
+const NODE_WIDTH = 200;
 const NODE_HEIGHT = 44;
-const SECTION_PADDING = 16;
+const NODE_H_GAP = 14;
+const NODE_V_GAP = 12;
+const NODES_PER_ROW = 3;
+const SECTION_H_PADDING = 18;
+const SECTION_V_PADDING = 14;
 const SECTION_LABEL_HEIGHT = 28;
+const SECTION_GAP = 48;
 
 export function computeLayout(roadmap) {
-  const g = new dagre.graphlib.Graph();
-  g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: 'TB', nodesep: 24, ranksep: 40, marginx: 30, marginy: 30 });
-
-  roadmap.sections.forEach(section => {
-    section.nodes.forEach(node => {
-      g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
-    });
-  });
-
-  roadmap.edges.forEach(edge => {
-    g.setEdge(edge.source, edge.target);
-  });
-
-  dagre.layout(g);
-
+  let currentY = 0;
   const rfNodes = [];
+
   const rfEdges = roadmap.edges.map((e, i) => ({
     id: `e-${i}`,
     source: e.source,
     target: e.target,
     type: 'smoothstep',
     markerEnd: { type: 'arrowclosed' },
+    style: { stroke: '#94a3b8', strokeWidth: 1.5 },
   }));
 
   roadmap.sections.forEach(section => {
     if (section.nodes.length === 0) return;
 
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    section.nodes.forEach(node => {
-      const pos = g.node(node.id);
-      minX = Math.min(minX, pos.x - NODE_WIDTH / 2);
-      minY = Math.min(minY, pos.y - NODE_HEIGHT / 2);
-      maxX = Math.max(maxX, pos.x + NODE_WIDTH / 2);
-      maxY = Math.max(maxY, pos.y + NODE_HEIGHT / 2);
-    });
+    const cols = Math.min(section.nodes.length, NODES_PER_ROW);
+    const rows = Math.ceil(section.nodes.length / NODES_PER_ROW);
 
-    const groupX = minX - SECTION_PADDING;
-    const groupY = minY - SECTION_PADDING - SECTION_LABEL_HEIGHT;
-    const groupWidth = maxX - minX + SECTION_PADDING * 2;
-    const groupHeight = maxY - minY + SECTION_PADDING * 2 + SECTION_LABEL_HEIGHT;
+    const groupWidth =
+      cols * NODE_WIDTH + (cols - 1) * NODE_H_GAP + SECTION_H_PADDING * 2;
+    const groupHeight =
+      SECTION_LABEL_HEIGHT +
+      SECTION_V_PADDING +
+      rows * NODE_HEIGHT +
+      (rows - 1) * NODE_V_GAP +
+      SECTION_V_PADDING;
 
     rfNodes.push({
       id: section.id,
       type: 'sectionNode',
-      position: { x: groupX, y: groupY },
+      position: { x: 0, y: currentY },
       style: { width: groupWidth, height: groupHeight },
       data: { label: section.label, color: section.color },
       draggable: false,
@@ -59,21 +47,24 @@ export function computeLayout(roadmap) {
       zIndex: -1,
     });
 
-    section.nodes.forEach(node => {
-      const pos = g.node(node.id);
+    section.nodes.forEach((node, idx) => {
+      const row = Math.floor(idx / NODES_PER_ROW);
+      const col = idx % NODES_PER_ROW;
       rfNodes.push({
         id: node.id,
         type: 'topicNode',
         parentId: section.id,
         extent: 'parent',
         position: {
-          x: pos.x - NODE_WIDTH / 2 - groupX,
-          y: pos.y - NODE_HEIGHT / 2 - groupY,
+          x: SECTION_H_PADDING + col * (NODE_WIDTH + NODE_H_GAP),
+          y: SECTION_LABEL_HEIGHT + SECTION_V_PADDING + row * (NODE_HEIGHT + NODE_V_GAP),
         },
-        data: { label: node.label },
+        data: { label: node.label, level: node.level || 'beginner' },
         style: { width: NODE_WIDTH },
       });
     });
+
+    currentY += groupHeight + SECTION_GAP;
   });
 
   return { nodes: rfNodes, edges: rfEdges };

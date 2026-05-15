@@ -14,11 +14,19 @@ export default function App() {
   const [topic, setTopic] = useState('');
   const [roadmap, setRoadmap] = useState(null);
   const [loadingRoadmap, setLoadingRoadmap] = useState(false);
-  const [roadmapError, setRoadmapError] = useState('');
+  const [loadingStatus, setLoadingStatus] = useState('');
+
+  const [errors, setErrors] = useState([]);
 
   const [selectedNode, setSelectedNode] = useState(null);
   const [explanations, setExplanations] = useState({});
   const [loadingExplanation, setLoadingExplanation] = useState(false);
+
+  function pushError(msg) {
+    const id = Date.now();
+    setErrors(prev => [...prev, { id, msg }]);
+    setTimeout(() => setErrors(prev => prev.filter(e => e.id !== id)), 6000);
+  }
 
   function saveApiKey(key) {
     localStorage.setItem(STORAGE_KEY, key);
@@ -28,9 +36,10 @@ export default function App() {
 
   async function handleGenerate(inputTopic) {
     setTopic(inputTopic);
-    setRoadmapError('');
     setSelectedNode(null);
+    setExplanations({});   // evict cache on new roadmap
     setLoadingRoadmap(true);
+    setLoadingStatus('Generating roadmap…');
     try {
       const result = await generateRoadmap(inputTopic, apiKey);
       setRoadmap(result);
@@ -40,20 +49,24 @@ export default function App() {
         setApiKey('');
         localStorage.removeItem(STORAGE_KEY);
       } else {
-        setRoadmapError(err.message || 'Failed to generate roadmap.');
+        pushError(err.message || 'Failed to generate roadmap.');
       }
     } finally {
       setLoadingRoadmap(false);
+      setLoadingStatus('');
     }
   }
 
   async function handleNodeClick(node) {
     setSelectedNode(node);
+    // Use cached explanation — only fetch if none exist yet
+    if ((explanations[node.id] || []).length > 0) return;
     await fetchExplanation(node.id, node.data.label);
   }
 
   async function fetchExplanation(nodeId, nodeLabel) {
     setLoadingExplanation(true);
+    setLoadingStatus(`Loading: ${nodeLabel}…`);
     let accumulated = '';
     try {
       await explainNode(topic, nodeLabel, apiKey, (chunk) => {
@@ -64,18 +77,12 @@ export default function App() {
           if (last && last.streaming) {
             return {
               ...prev,
-              [nodeId]: [
-                ...history.slice(0, -1),
-                { ...last, content: accumulated },
-              ],
+              [nodeId]: [...history.slice(0, -1), { ...last, content: accumulated }],
             };
           }
           return {
             ...prev,
-            [nodeId]: [
-              ...history,
-              { timestamp: new Date().toISOString(), content: accumulated, streaming: true },
-            ],
+            [nodeId]: [...history, { timestamp: new Date().toISOString(), content: accumulated, streaming: true }],
           };
         });
       });
@@ -83,15 +90,14 @@ export default function App() {
         const history = prev[nodeId] || [];
         return {
           ...prev,
-          [nodeId]: history.map((e, i) =>
-            i === history.length - 1 ? { ...e, streaming: false } : e
-          ),
+          [nodeId]: history.map((e, i) => i === history.length - 1 ? { ...e, streaming: false } : e),
         };
       });
     } catch (err) {
-      setRoadmapError(err.message || 'Failed to fetch explanation.');
+      pushError(err.message || 'Failed to fetch explanation.');
     } finally {
       setLoadingExplanation(false);
+      setLoadingStatus('');
     }
   }
 
@@ -106,6 +112,8 @@ export default function App() {
     return <ApiKeyModal onSave={saveApiKey} error={apiKeyError} />;
   }
 
+  const isBusy = loadingRoadmap || loadingExplanation;
+
   return (
     <div className="app">
       <header className="app-header">
@@ -119,10 +127,10 @@ export default function App() {
         </button>
       </header>
 
-      {roadmapError && (
-        <div className="error-banner">
-          {roadmapError}
-          <button onClick={() => setRoadmapError('')}>✕</button>
+      {isBusy && (
+        <div className="progress-bar-track">
+          <div className="progress-bar-fill" />
+          {loadingStatus && <span className="progress-label">{loadingStatus}</span>}
         </div>
       )}
 
@@ -135,6 +143,15 @@ export default function App() {
           onRegenerate={handleRegenerate}
           onClose={() => setSelectedNode(null)}
         />
+      </div>
+
+      <div className="toast-stack">
+        {errors.map(e => (
+          <div key={e.id} className="toast toast--error">
+            <span>⚠ {e.msg}</span>
+            <button onClick={() => setErrors(prev => prev.filter(x => x.id !== e.id))}>✕</button>
+          </div>
+        ))}
       </div>
     </div>
   );

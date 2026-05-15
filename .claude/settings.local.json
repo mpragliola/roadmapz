@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(superpowers:brainstorming)",
+      "Skill(superpowers:writing-plans)",
+      "Skill(superpowers:subagent-driven-development)",
+      "Bash(Get-ChildItem -Path \"E:\\\\dev\\\\roadmapz\" -Force)",
+      "Bash(Select-Object -Property Name, Mode)",
+      "Bash(Format-Table)",
+      "PowerShell(Test-Path *)",
+      "Bash(Get-ChildItem *)",
+      "Bash(Select-Object -Property FullName)",
+      "Skill(superpowers:test-driven-development)"
+    ]
+  }
+}
