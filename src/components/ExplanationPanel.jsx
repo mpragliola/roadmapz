@@ -3,7 +3,7 @@ import { marked } from 'marked';
 
 marked.use({ gfm: true, breaks: true });
 
-export default function ExplanationPanel({ nodeLabel, history, loading, onRegenerate, onClose }) {
+export default function ExplanationPanel({ nodeLabel, nodeLevel, history, loading, onGenerate, onRegenerate, onClose }) {
   const [selectedIndex, setSelectedIndex] = useState(history.length - 1);
 
   useEffect(() => {
@@ -12,12 +12,26 @@ export default function ExplanationPanel({ nodeLabel, history, loading, onRegene
 
   if (!nodeLabel) return null;
 
-  const current = history[selectedIndex];
+  const hasContent = history.length > 0;
+  const current = hasContent ? history[selectedIndex] : null;
+
+  const LEVEL_LABELS = {
+    beginner: { label: 'Beginner', color: '#166534', bg: '#dcfce7' },
+    intermediate: { label: 'Intermediate', color: '#1e40af', bg: '#dbeafe' },
+    advanced: { label: 'Advanced', color: '#9a3412', bg: '#ffedd5' },
+    optional: { label: 'Optional', color: '#6b21a8', bg: '#f3e8ff' },
+  };
+  const levelStyle = LEVEL_LABELS[nodeLevel] || LEVEL_LABELS.beginner;
 
   return (
     <div className="explanation-panel">
       <div className="explanation-header">
-        <h2>{nodeLabel}</h2>
+        <div className="explanation-title">
+          <h2>{nodeLabel}</h2>
+          <span className="level-pill" style={{ background: levelStyle.bg, color: levelStyle.color }}>
+            {levelStyle.label}
+          </span>
+        </div>
         <button aria-label="Close" onClick={onClose} className="close-btn">✕</button>
       </div>
 
@@ -46,6 +60,15 @@ export default function ExplanationPanel({ nodeLabel, history, loading, onRegene
         </div>
       )}
 
+      {!hasContent && !loading && (
+        <div className="explanation-empty">
+          <p>No explanation generated yet.</p>
+          <button className="generate-first-btn" onClick={onGenerate}>
+            Generate Explanation
+          </button>
+        </div>
+      )}
+
       {current && (
         <div
           className="explanation-content"
@@ -53,18 +76,20 @@ export default function ExplanationPanel({ nodeLabel, history, loading, onRegene
         />
       )}
 
-      <button
-        className="regenerate-btn"
-        onClick={onRegenerate}
-        disabled={loading}
-        aria-label={loading ? 'Loading' : 'Regenerate'}
-      >
-        {loading ? (
-          <span className="btn-spinner-row"><span className="spinner-sm" /> Generating...</span>
-        ) : (
-          '↺ Regenerate'
-        )}
-      </button>
+      {hasContent && (
+        <button
+          className="regenerate-btn"
+          onClick={onRegenerate}
+          disabled={loading}
+          aria-label={loading ? 'Loading' : 'Regenerate'}
+        >
+          {loading ? (
+            <span className="btn-spinner-row"><span className="spinner-sm" /> Generating...</span>
+          ) : (
+            '↺ Regenerate'
+          )}
+        </button>
+      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { marked } from 'marked';
 import ApiKeyModal from './components/ApiKeyModal.jsx';
 import TopicInput from './components/TopicInput.jsx';
 import RoadmapCanvas from './components/RoadmapCanvas.jsx';
@@ -6,6 +7,7 @@ import ExplanationPanel from './components/ExplanationPanel.jsx';
 import { generateRoadmap, explainNode, MODELS } from './hooks/useClaude.js';
 
 const STORAGE_KEY = 'roadmapz_api_key';
+const SAVE_VERSION = 1;
 
 function TokenBadge({ stats }) {
   if (!stats.totalIn && !stats.totalOut) return null;
@@ -59,6 +61,8 @@ export default function App() {
   const [tokenStats, setTokenStats] = useState({ totalIn: 0, totalOut: 0, cacheRead: 0, cacheWrite: 0 });
   const [model, setModel] = useState(MODELS[1].id);
 
+  const loadFileRef = useRef(null);
+
   function addTokens(usage) {
     if (!usage) return;
     setTokenStats(prev => ({
@@ -81,6 +85,8 @@ export default function App() {
     setApiKeyError('');
   }
 
+  // ── Generation ─────────────────────────────────────────────────────────────
+
   async function handleGenerate(inputTopic, inputContext) {
     setTopic(inputTopic);
     setSelectedNode(null);
@@ -91,7 +97,7 @@ export default function App() {
     try {
       const { roadmap: result, usage } = await generateRoadmap(
         inputTopic, inputContext, apiKey,
-        (tokens, max) => setGenProgress(Math.min(95, Math.round((tokens / max) * 100))),
+        (chars, est) => setGenProgress(Math.min(95, Math.round((chars / est) * 100))),
         model
       );
       setRoadmap(result);
@@ -112,15 +118,20 @@ export default function App() {
     }
   }
 
-  async function handleNodeClick(node) {
+  // ── Node click — NO auto-generation; user must click "Generate" in panel ───
+
+  function handleNodeClick(node) {
     setSelectedNode(node);
-    if ((explanations[node.id] || []).length > 0) return;
-    await fetchExplanation(node.id, node.data.label);
+  }
+
+  async function handleGenerateExplanation() {
+    if (!selectedNode) return;
+    await fetchExplanation(selectedNode.id, selectedNode.data.label);
   }
 
   async function fetchExplanation(nodeId, nodeLabel) {
     setLoadingExplanation(true);
-    setLoadingStatus(`Loading: ${nodeLabel}…`);
+    setLoadingStatus(`Generating: ${nodeLabel}…`);
     let accumulated = '';
     try {
       const { usage } = await explainNode(topic, nodeLabel, apiKey, (chunk) => {
@@ -152,6 +163,59 @@ export default function App() {
     await fetchExplanation(selectedNode.id, selectedNode.data.label);
   }
 
+  // ── Save / Load ─────────────────────────────────────────────────────────────
+
+  function handleSave() {
+    if (!roadmap) return;
+    const data = {
+      version: SAVE_VERSION,
+      savedAt: new Date().toISOString(),
+      topic,
+      model,
+      roadmap,
+      explanations,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `roadmap-${topic.toLowerCase().replace(/\s+/g, '-')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleLoadClick() {
+    loadFileRef.current?.click();
+  }
+
+  function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        setTopic(data.topic || '');
+        setRoadmap(data.roadmap);
+        setExplanations(data.explanations || {});
+        setSelectedNode(null);
+        if (data.model && MODELS.find(m => m.id === data.model)) setModel(data.model);
+      } catch {
+        pushError('Failed to load file — invalid format.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  // ── PDF / Print ─────────────────────────────────────────────────────────────
+
+  function handlePrint() {
+    window.print();
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+
   const selectedHistory = selectedNode ? (explanations[selectedNode.id] || []) : [];
   const isBusy = loadingRoadmap || loadingExplanation;
 
@@ -166,6 +230,18 @@ export default function App() {
         <TopicInput onGenerate={handleGenerate} loading={loadingRoadmap} />
         <ModelSelector value={model} onChange={setModel} disabled={isBusy} />
         <TokenBadge stats={tokenStats} />
+        <div className="header-actions">
+          <button className="action-btn" onClick={handleSave} disabled={!roadmap} title="Save roadmap">
+            💾
+          </button>
+          <button className="action-btn" onClick={handleLoadClick} title="Load roadmap">
+            📂
+          </button>
+          <button className="action-btn" onClick={handlePrint} disabled={!roadmap} title="Export to PDF">
+            🖨
+          </button>
+          <input ref={loadFileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleFileChange} />
+        </div>
         {!import.meta.env.VITE_ANTHROPIC_API_KEY && (
           <button
             className="change-key-btn"
@@ -190,12 +266,19 @@ export default function App() {
         <RoadmapCanvas roadmap={roadmap} onNodeClick={handleNodeClick} />
         <ExplanationPanel
           nodeLabel={selectedNode?.data?.label || null}
+          nodeLevel={selectedNode?.data?.level || 'beginner'}
           history={selectedHistory}
           loading={loadingExplanation}
+          onGenerate={handleGenerateExplanation}
           onRegenerate={handleRegenerate}
           onClose={() => setSelectedNode(null)}
         />
       </div>
+
+      {/* Print view — hidden in browser, shown by @media print */}
+      {roadmap && (
+        <PrintView topic={topic} roadmap={roadmap} explanations={explanations} />
+      )}
 
       <div className="toast-stack">
         {errors.map(e => (
@@ -205,6 +288,37 @@ export default function App() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function PrintView({ topic, roadmap, explanations }) {
+  return (
+    <div className="print-view">
+      <h1>{roadmap.title || topic}</h1>
+      <p className="print-meta">Generated with roadmapz · {new Date().toLocaleDateString()}</p>
+
+      {roadmap.sections.map(section => (
+        <div key={section.id} className="print-section">
+          <h2>{section.label}</h2>
+          {section.nodes.map(node => {
+            const history = explanations[node.id] || [];
+            const latest = history[history.length - 1];
+            return (
+              <div key={node.id} className="print-node">
+                <h3>
+                  {node.label}
+                  <span className="print-level"> [{node.level}]</span>
+                </h3>
+                {latest
+                  ? <div className="print-explanation" dangerouslySetInnerHTML={{ __html: marked.parse(latest.content) }} />
+                  : <p className="print-no-explanation"><em>No explanation generated.</em></p>
+                }
+              </div>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }

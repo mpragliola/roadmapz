@@ -446,3 +446,173 @@ body {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* Header action buttons (save/load/print) */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.action-btn {
+  padding: 6px 9px;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-size: 15px;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.1s;
+}
+.action-btn:hover:not(:disabled) { background: #eaeef2; }
+.action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Explanation panel updates */
+.explanation-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.explanation-title h2 {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.level-pill {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+/* Empty state in explanation panel */
+.explanation-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+}
+.explanation-empty p {
+  font-size: 13px;
+  color: #57606a;
+}
+.generate-first-btn {
+  padding: 9px 20px;
+  background: #0969da;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.generate-first-btn:hover { background: #0860ca; }
+
+/* Print view — hidden in browser */
+.print-view { display: none; }
+
+/* ── Print / PDF styles ───────────────────────────────────────────────────── */
+@media print {
+  /* Hide interactive UI */
+  .app-header,
+  .progress-bar-track,
+  .app-body,
+  .toast-stack { display: none !important; }
+
+  /* Show print view */
+  .print-view {
+    display: block;
+    font-family: Georgia, 'Times New Roman', serif;
+    color: #000;
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .print-view h1 {
+    font-size: 26px;
+    font-weight: 900;
+    margin-bottom: 4px;
+    text-transform: capitalize;
+  }
+
+  .print-meta {
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 28px;
+  }
+
+  .print-section {
+    break-inside: avoid-page;
+    margin-bottom: 28px;
+  }
+
+  .print-section h2 {
+    font-size: 16px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 2px solid #000;
+    padding-bottom: 4px;
+    margin-bottom: 14px;
+  }
+
+  .print-node {
+    margin-bottom: 18px;
+    padding-left: 16px;
+    border-left: 3px solid #ccc;
+  }
+
+  .print-node h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .print-level {
+    font-size: 11px;
+    font-weight: 400;
+    font-style: italic;
+    color: #555;
+  }
+
+  .print-explanation {
+    font-size: 12px;
+    line-height: 1.65;
+    color: #222;
+  }
+
+  .print-explanation h1, .print-explanation h2, .print-explanation h3 {
+    font-size: 13px;
+    font-weight: 700;
+    margin: 10px 0 4px;
+  }
+
+  .print-explanation p { margin-bottom: 8px; }
+  .print-explanation ul, .print-explanation ol { margin: 4px 0 8px 20px; }
+  .print-explanation li { margin-bottom: 3px; }
+  .print-explanation code {
+    background: #f0f0f0;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-family: monospace;
+  }
+
+  .print-no-explanation {
+    font-size: 12px;
+    color: #888;
+  }
+}

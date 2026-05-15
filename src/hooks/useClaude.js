@@ -68,20 +68,19 @@ export async function generateRoadmap(topic, context, apiKey, onProgress, model 
 
   let raw = '';
   let usage = null;
-  let outputTokens = 0;
+  // Estimate: typical roadmap JSON is 1500–2500 chars; cap progress at 95% until done
+  const EST_CHARS = 2200;
 
   for await (const event of stream) {
     if (event.type === 'message_start') {
       usage = { ...event.message.usage };
     }
     if (event.type === 'message_delta' && event.usage) {
-      outputTokens = event.usage.output_tokens;
-      if (usage) usage.output_tokens = outputTokens;
-      onProgress?.(outputTokens, 4096);
+      if (usage) usage.output_tokens = event.usage.output_tokens;
     }
     if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
       raw += event.delta.text;
-      onProgress?.(outputTokens, 4096);
+      onProgress?.(Math.min(raw.length, EST_CHARS), EST_CHARS);
     }
   }
 

@@ -31,15 +31,17 @@ Node level values — use exactly one of these strings per node:
 - "optional"      — enrichment or broadening topics, not on the critical path
 
 Rules:
-- 5 to 8 sections representing major groupings (e.g. Prerequisites, Core Concepts, Tooling, Advanced Topics, Ecosystem, Best Practices)
+- 5 to 8 sections representing the major stages of the learning journey (e.g. Prerequisites, Fundamentals, Core Concepts, Tooling, Advanced Topics, Ecosystem, Best Practices, Career Tips)
 - 2 to 6 nodes per section
-- Every node must have a "level" field with one of the four values above
-- Edges define the learning order — prerequisites point to what they unlock
-- The overall progression must go from beginner → intermediate → advanced
-- Optional topics can appear at any level to indicate enrichment paths
-- Each section color must be a distinct soft pastel hex (e.g. "#e8f4fd", "#fef9e7", "#f0fff4", "#fdf2f8")
+- Every node must have a "level" field
+- Sections and nodes must follow a clear spine: foundational → intermediate → advanced
+- Within each section, nodes should be ordered from must-know to optional deepening
+- "optional" nodes are valid enrichment topics — mark them honestly
+- Edges define the learning order — a source node must be understood before its target
+- Cross-section edges are allowed to show real dependencies
+- Each section color must be a distinct soft pastel hex
 - All ids must be unique strings across the entire roadmap
-- Model the progression after how roadmap.sh structures "${topic}" — make it realistic and battle-tested`;
+- Model the progression after how roadmap.sh structures "${topic}" — realistic, battle-tested, no fluff`;
 }
 
 export function buildExplanationPrompt(topic, nodeLabel) {
