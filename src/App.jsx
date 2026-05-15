@@ -39,7 +39,9 @@ function ModelSelector({ value, onChange, disabled }) {
 }
 
 export default function App() {
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem(STORAGE_KEY) || '');
+  const [apiKey, setApiKey] = useState(() =>
+    import.meta.env.VITE_ANTHROPIC_API_KEY || localStorage.getItem(STORAGE_KEY) || ''
+  );
   const [apiKeyError, setApiKeyError] = useState('');
 
   const [topic, setTopic] = useState('');
@@ -164,12 +166,14 @@ export default function App() {
         <TopicInput onGenerate={handleGenerate} loading={loadingRoadmap} />
         <ModelSelector value={model} onChange={setModel} disabled={isBusy} />
         <TokenBadge stats={tokenStats} />
-        <button
-          className="change-key-btn"
-          onClick={() => { setApiKey(''); localStorage.removeItem(STORAGE_KEY); }}
-        >
-          API Key
-        </button>
+        {!import.meta.env.VITE_ANTHROPIC_API_KEY && (
+          <button
+            className="change-key-btn"
+            onClick={() => { setApiKey(''); localStorage.removeItem(STORAGE_KEY); }}
+          >
+            API Key
+          </button>
+        )}
       </header>
 
       {isBusy && (
