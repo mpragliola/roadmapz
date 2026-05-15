@@ -1,5 +1,5 @@
 const NODE_WIDTH = 200;
-const NODE_HEIGHT = 44;
+const NODE_HEIGHT = 54;  // taller to fit label + level badge
 const NODE_H_GAP = 14;
 const NODE_V_GAP = 12;
 const NODES_PER_ROW = 3;
@@ -36,31 +36,37 @@ export function computeLayout(roadmap) {
       (rows - 1) * NODE_V_GAP +
       SECTION_V_PADDING;
 
+    // Section box — plain background node, no parent relationship
     rfNodes.push({
       id: section.id,
       type: 'sectionNode',
       position: { x: 0, y: currentY },
-      style: { width: groupWidth, height: groupHeight },
+      style: { width: groupWidth, height: groupHeight, pointerEvents: 'none' },
       data: { label: section.label, color: section.color },
       draggable: false,
       selectable: false,
-      zIndex: -1,
+      focusable: false,
+      zIndex: 0,
     });
 
+    // Topic nodes use absolute positions — no parentId, no extent
     section.nodes.forEach((node, idx) => {
       const row = Math.floor(idx / NODES_PER_ROW);
       const col = idx % NODES_PER_ROW;
       rfNodes.push({
         id: node.id,
         type: 'topicNode',
-        parentId: section.id,
-        extent: 'parent',
+        // absolute coordinates — avoids React Flow parent/child sizing bugs
         position: {
           x: SECTION_H_PADDING + col * (NODE_WIDTH + NODE_H_GAP),
-          y: SECTION_LABEL_HEIGHT + SECTION_V_PADDING + row * (NODE_HEIGHT + NODE_V_GAP),
+          y: currentY + SECTION_LABEL_HEIGHT + SECTION_V_PADDING + row * (NODE_HEIGHT + NODE_V_GAP),
         },
+        // tell React Flow where edges should attach (no Handle components needed)
+        sourcePosition: 'bottom',
+        targetPosition: 'top',
         data: { label: node.label, level: node.level || 'beginner' },
         style: { width: NODE_WIDTH },
+        zIndex: 1,
       });
     });
 

@@ -1,5 +1,3 @@
-import { Handle, Position } from '@xyflow/react';
-
 const LEVEL_STYLES = {
   beginner:     { bg: '#f0fdf4', border: '#86efac', text: '#15803d', badge: '#dcfce7', badgeText: '#166534' },
   intermediate: { bg: '#eff6ff', border: '#93c5fd', text: '#1d4ed8', badge: '#dbeafe', badgeText: '#1e40af' },
@@ -16,7 +14,7 @@ export default function TopicNode({ data, selected }) {
         background: style.bg,
         border: selected ? `2px solid #3b82f6` : `1.5px solid ${style.border}`,
         borderRadius: 6,
-        padding: '6px 12px 6px',
+        padding: '7px 12px 6px',
         fontSize: 12,
         fontWeight: 500,
         color: style.text,
@@ -30,14 +28,15 @@ export default function TopicNode({ data, selected }) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 3,
+        gap: 4,
+        height: '100%',
+        justifyContent: 'center',
       }}
     >
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
       <span style={{ lineHeight: 1.3 }}>{data.label}</span>
       <span style={{
         fontSize: 9,
-        fontWeight: 600,
+        fontWeight: 700,
         textTransform: 'uppercase',
         letterSpacing: '0.05em',
         background: style.badge,
@@ -47,7 +46,6 @@ export default function TopicNode({ data, selected }) {
       }}>
         {data.level || 'beginner'}
       </span>
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
     </div>
   );
 }

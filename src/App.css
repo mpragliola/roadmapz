@@ -76,6 +76,13 @@ body {
 }
 
 /* Topic input */
+.topic-input-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .topic-input {
   display: flex;
   flex: 1;
@@ -113,6 +120,34 @@ body {
 .change-key-btn { background: #f6f8fa; color: #57606a; border: 1px solid #d0d7de; }
 .change-key-btn:hover { background: #eaeef2; }
 
+.context-toggle-btn {
+  padding: 7px 10px;
+  background: #f6f8fa;
+  color: #57606a;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.context-toggle-btn:hover:not(:disabled) { background: #eaeef2; }
+.context-toggle-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.context-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1a1a1a;
+  resize: vertical;
+  outline: none;
+  line-height: 1.5;
+}
+.context-textarea:focus { border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,0.12); }
+
 /* Token badge */
 .token-badge {
   display: flex;
@@ -133,6 +168,16 @@ body {
 }
 .token-badge__cache {
   color: #0969da;
+}
+
+/* Hide React Flow connection handles — this app is read-only, no edge creation */
+.react-flow__handle {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-width: unset !important;
+  min-height: unset !important;
 }
 
 /* Canvas */

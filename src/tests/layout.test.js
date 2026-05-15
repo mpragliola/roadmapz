@@ -46,10 +46,12 @@ describe('computeLayout', () => {
     expect(topicNodes).toHaveLength(3);
   });
 
-  it('topic nodes reference their parent section via parentId', () => {
+  it('topic nodes have absolute positions (no parentId) and use sourcePosition/targetPosition', () => {
     const { nodes } = computeLayout(ROADMAP);
     const n1 = nodes.find(n => n.id === 'n1');
-    expect(n1.parentId).toBe('s1');
+    expect(n1.parentId).toBeUndefined();
+    expect(n1.sourcePosition).toBe('bottom');
+    expect(n1.targetPosition).toBe('top');
   });
 
   it('produces one edge per input edge', () => {

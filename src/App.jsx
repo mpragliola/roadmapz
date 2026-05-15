@@ -65,7 +65,7 @@ export default function App() {
     setApiKeyError('');
   }
 
-  async function handleGenerate(inputTopic) {
+  async function handleGenerate(inputTopic, inputContext) {
     setTopic(inputTopic);
     setSelectedNode(null);
     setExplanations({});
@@ -73,7 +73,7 @@ export default function App() {
     setLoadingStatus('Generating roadmap…');
     setGenProgress(0);
     try {
-      const { roadmap: result, usage } = await generateRoadmap(inputTopic, apiKey, (tokens, max) => {
+      const { roadmap: result, usage } = await generateRoadmap(inputTopic, inputContext, apiKey, (tokens, max) => {
         setGenProgress(Math.min(95, Math.round((tokens / max) * 100)));
       });
       setRoadmap(result);
