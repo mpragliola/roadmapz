@@ -1,3 +1,141 @@
+import { useState } from 'react';
+import ApiKeyModal from './components/ApiKeyModal.jsx';
+import TopicInput from './components/TopicInput.jsx';
+import RoadmapCanvas from './components/RoadmapCanvas.jsx';
+import ExplanationPanel from './components/ExplanationPanel.jsx';
+import { generateRoadmap, explainNode } from './hooks/useClaude.js';
+
+const STORAGE_KEY = 'roadmapz_api_key';
+
 export default function App() {
-  return null;
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem(STORAGE_KEY) || '');
+  const [apiKeyError, setApiKeyError] = useState('');
+
+  const [topic, setTopic] = useState('');
+  const [roadmap, setRoadmap] = useState(null);
+  const [loadingRoadmap, setLoadingRoadmap] = useState(false);
+  const [roadmapError, setRoadmapError] = useState('');
+
+  const [selectedNode, setSelectedNode] = useState(null);
+  const [explanations, setExplanations] = useState({});
+  const [loadingExplanation, setLoadingExplanation] = useState(false);
+
+  function saveApiKey(key) {
+    localStorage.setItem(STORAGE_KEY, key);
+    setApiKey(key);
+    setApiKeyError('');
+  }
+
+  async function handleGenerate(inputTopic) {
+    setTopic(inputTopic);
+    setRoadmapError('');
+    setSelectedNode(null);
+    setLoadingRoadmap(true);
+    try {
+      const result = await generateRoadmap(inputTopic, apiKey);
+      setRoadmap(result);
+    } catch (err) {
+      if (err.message?.includes('401') || err.message?.includes('authentication')) {
+        setApiKeyError('Invalid API key. Please check and re-enter it.');
+        setApiKey('');
+        localStorage.removeItem(STORAGE_KEY);
+      } else {
+        setRoadmapError(err.message || 'Failed to generate roadmap.');
+      }
+    } finally {
+      setLoadingRoadmap(false);
+    }
+  }
+
+  async function handleNodeClick(node) {
+    setSelectedNode(node);
+    await fetchExplanation(node.id, node.data.label);
+  }
+
+  async function fetchExplanation(nodeId, nodeLabel) {
+    setLoadingExplanation(true);
+    let accumulated = '';
+    try {
+      await explainNode(topic, nodeLabel, apiKey, (chunk) => {
+        accumulated += chunk;
+        setExplanations(prev => {
+          const history = prev[nodeId] || [];
+          const last = history[history.length - 1];
+          if (last && last.streaming) {
+            return {
+              ...prev,
+              [nodeId]: [
+                ...history.slice(0, -1),
+                { ...last, content: accumulated },
+              ],
+            };
+          }
+          return {
+            ...prev,
+            [nodeId]: [
+              ...history,
+              { timestamp: new Date().toISOString(), content: accumulated, streaming: true },
+            ],
+          };
+        });
+      });
+      setExplanations(prev => {
+        const history = prev[nodeId] || [];
+        return {
+          ...prev,
+          [nodeId]: history.map((e, i) =>
+            i === history.length - 1 ? { ...e, streaming: false } : e
+          ),
+        };
+      });
+    } catch (err) {
+      setRoadmapError(err.message || 'Failed to fetch explanation.');
+    } finally {
+      setLoadingExplanation(false);
+    }
+  }
+
+  async function handleRegenerate() {
+    if (!selectedNode) return;
+    await fetchExplanation(selectedNode.id, selectedNode.data.label);
+  }
+
+  const selectedHistory = selectedNode ? (explanations[selectedNode.id] || []) : [];
+
+  if (!apiKey) {
+    return <ApiKeyModal onSave={saveApiKey} error={apiKeyError} />;
+  }
+
+  return (
+    <div className="app">
+      <header className="app-header">
+        <span className="app-logo">roadmapz</span>
+        <TopicInput onGenerate={handleGenerate} loading={loadingRoadmap} />
+        <button
+          className="change-key-btn"
+          onClick={() => { setApiKey(''); localStorage.removeItem(STORAGE_KEY); }}
+        >
+          API Key
+        </button>
+      </header>
+
+      {roadmapError && (
+        <div className="error-banner">
+          {roadmapError}
+          <button onClick={() => setRoadmapError('')}>✕</button>
+        </div>
+      )}
+
+      <div className="app-body">
+        <RoadmapCanvas roadmap={roadmap} onNodeClick={handleNodeClick} />
+        <ExplanationPanel
+          nodeLabel={selectedNode?.data?.label || null}
+          history={selectedHistory}
+          loading={loadingExplanation}
+          onRegenerate={handleRegenerate}
+          onClose={() => setSelectedNode(null)}
+        />
+      </div>
+    </div>
+  );
 }
