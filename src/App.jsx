@@ -3,7 +3,7 @@ import ApiKeyModal from './components/ApiKeyModal.jsx';
 import TopicInput from './components/TopicInput.jsx';
 import RoadmapCanvas from './components/RoadmapCanvas.jsx';
 import ExplanationPanel from './components/ExplanationPanel.jsx';
-import { generateRoadmap, explainNode } from './hooks/useClaude.js';
+import { generateRoadmap, explainNode, MODELS } from './hooks/useClaude.js';
 
 const STORAGE_KEY = 'roadmapz_api_key';
 
@@ -25,6 +25,19 @@ function TokenBadge({ stats }) {
   );
 }
 
+function ModelSelector({ value, onChange, disabled }) {
+  const selected = MODELS.find(m => m.id === value);
+  return (
+    <div className="model-selector" title={selected?.description}>
+      <select value={value} onChange={e => onChange(e.target.value)} disabled={disabled}>
+        {MODELS.map(m => (
+          <option key={m.id} value={m.id}>{m.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 export default function App() {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(STORAGE_KEY) || '');
   const [apiKeyError, setApiKeyError] = useState('');
@@ -33,7 +46,7 @@ export default function App() {
   const [roadmap, setRoadmap] = useState(null);
   const [loadingRoadmap, setLoadingRoadmap] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('');
-  const [genProgress, setGenProgress] = useState(0); // 0–100
+  const [genProgress, setGenProgress] = useState(0);
 
   const [errors, setErrors] = useState([]);
 
@@ -42,6 +55,7 @@ export default function App() {
   const [loadingExplanation, setLoadingExplanation] = useState(false);
 
   const [tokenStats, setTokenStats] = useState({ totalIn: 0, totalOut: 0, cacheRead: 0, cacheWrite: 0 });
+  const [model, setModel] = useState(MODELS[1].id);
 
   function addTokens(usage) {
     if (!usage) return;
@@ -73,9 +87,11 @@ export default function App() {
     setLoadingStatus('Generating roadmap…');
     setGenProgress(0);
     try {
-      const { roadmap: result, usage } = await generateRoadmap(inputTopic, inputContext, apiKey, (tokens, max) => {
-        setGenProgress(Math.min(95, Math.round((tokens / max) * 100)));
-      });
+      const { roadmap: result, usage } = await generateRoadmap(
+        inputTopic, inputContext, apiKey,
+        (tokens, max) => setGenProgress(Math.min(95, Math.round((tokens / max) * 100))),
+        model
+      );
       setRoadmap(result);
       addTokens(usage);
       setGenProgress(100);
@@ -111,23 +127,14 @@ export default function App() {
           const history = prev[nodeId] || [];
           const last = history[history.length - 1];
           if (last && last.streaming) {
-            return {
-              ...prev,
-              [nodeId]: [...history.slice(0, -1), { ...last, content: accumulated }],
-            };
+            return { ...prev, [nodeId]: [...history.slice(0, -1), { ...last, content: accumulated }] };
           }
-          return {
-            ...prev,
-            [nodeId]: [...history, { timestamp: new Date().toISOString(), content: accumulated, streaming: true }],
-          };
+          return { ...prev, [nodeId]: [...history, { timestamp: new Date().toISOString(), content: accumulated, streaming: true }] };
         });
-      });
+      }, model);
       setExplanations(prev => {
         const history = prev[nodeId] || [];
-        return {
-          ...prev,
-          [nodeId]: history.map((e, i) => i === history.length - 1 ? { ...e, streaming: false } : e),
-        };
+        return { ...prev, [nodeId]: history.map((e, i) => i === history.length - 1 ? { ...e, streaming: false } : e) };
       });
       addTokens(usage);
     } catch (err) {
@@ -144,18 +151,18 @@ export default function App() {
   }
 
   const selectedHistory = selectedNode ? (explanations[selectedNode.id] || []) : [];
+  const isBusy = loadingRoadmap || loadingExplanation;
 
   if (!apiKey) {
     return <ApiKeyModal onSave={saveApiKey} error={apiKeyError} />;
   }
-
-  const isBusy = loadingRoadmap || loadingExplanation;
 
   return (
     <div className="app">
       <header className="app-header">
         <span className="app-logo">roadmapz</span>
         <TopicInput onGenerate={handleGenerate} loading={loadingRoadmap} />
+        <ModelSelector value={model} onChange={setModel} disabled={isBusy} />
         <TokenBadge stats={tokenStats} />
         <button
           className="change-key-btn"

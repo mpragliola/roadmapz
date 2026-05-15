@@ -1,7 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { parseRoadmapJson } from '../utils/parseRoadmap.js';
 
-const MODEL = 'claude-sonnet-4-6';
+export const MODELS = [
+  { id: 'claude-haiku-4-5-20251001', label: 'Haiku',  description: 'Fast & cheap — simple topics' },
+  { id: 'claude-sonnet-4-6',         label: 'Sonnet', description: 'Balanced — recommended default' },
+  { id: 'claude-opus-4-7',           label: 'Opus',   description: 'Best quality — complex/niche topics' },
+];
+
+const DEFAULT_MODEL = 'claude-sonnet-4-6';
 
 const ROADMAP_SYSTEM = `You are a curriculum designer creating structured learning roadmaps.
 
@@ -50,13 +56,14 @@ Write a thorough explanation covering:
 Format your response in Markdown using headers, bold text, and bullet points where appropriate. Target length: 300–500 words. Be practical and concrete.`;
 
 // Both functions stream for responsive progress. onProgress(tokensSoFar, estimatedTotal) is optional.
-export async function generateRoadmap(topic, apiKey, onProgress) {
+export async function generateRoadmap(topic, context, apiKey, onProgress, model = DEFAULT_MODEL) {
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+  const contextLine = context ? `\n\nAdditional context from the user: ${context}` : '';
   const stream = client.messages.stream({
-    model: MODEL,
+    model,
     max_tokens: 4096,
     system: [{ type: 'text', text: ROADMAP_SYSTEM, cache_control: { type: 'ephemeral' } }],
-    messages: [{ role: 'user', content: `Generate a learning roadmap for: "${topic}"\nModel the structure after how roadmap.sh organises "${topic}" — realistic and battle-tested.` }],
+    messages: [{ role: 'user', content: `Generate a learning roadmap for: "${topic}"\nModel the structure after how roadmap.sh organises "${topic}" — realistic and battle-tested.${contextLine}` }],
   });
 
   let raw = '';
@@ -81,10 +88,10 @@ export async function generateRoadmap(topic, apiKey, onProgress) {
   return { roadmap: parseRoadmapJson(raw), usage };
 }
 
-export async function explainNode(topic, nodeLabel, apiKey, onChunk) {
+export async function explainNode(topic, nodeLabel, apiKey, onChunk, model = DEFAULT_MODEL) {
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
   const stream = client.messages.stream({
-    model: MODEL,
+    model,
     max_tokens: 1024,
     system: [{ type: 'text', text: EXPLANATION_SYSTEM, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content: `Roadmap topic: "${topic}"\nConcept to explain: "${nodeLabel}"` }],
