@@ -54,6 +54,13 @@ body {
   animation: progress-slide 1.4s linear infinite;
 }
 
+/* Real fill mode — shows actual token progress, no animation */
+.progress-bar-fill--real {
+  animation: none;
+  background: #0969da;
+  transition: width 0.3s ease;
+}
+
 @keyframes progress-slide {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
@@ -105,6 +112,28 @@ body {
 
 .change-key-btn { background: #f6f8fa; color: #57606a; border: 1px solid #d0d7de; }
 .change-key-btn:hover { background: #eaeef2; }
+
+/* Token badge */
+.token-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.token-badge__item {
+  font-size: 11px;
+  font-weight: 600;
+  color: #57606a;
+  font-variant-numeric: tabular-nums;
+}
+.token-badge__cache {
+  color: #0969da;
+}
 
 /* Canvas */
 .canvas-wrapper { flex: 1; height: 100%; }

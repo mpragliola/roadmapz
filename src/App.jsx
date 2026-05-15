@@ -7,6 +7,24 @@ import { generateRoadmap, explainNode } from './hooks/useClaude.js';
 
 const STORAGE_KEY = 'roadmapz_api_key';
 
+function TokenBadge({ stats }) {
+  if (!stats.totalIn && !stats.totalOut) return null;
+  const cacheHitPct = stats.totalIn > 0
+    ? Math.round((stats.cacheRead / stats.totalIn) * 100)
+    : 0;
+  return (
+    <div className="token-badge" title={`Input: ${stats.totalIn} | Output: ${stats.totalOut} | Cache reads: ${stats.cacheRead} | Cache writes: ${stats.cacheWrite}`}>
+      <span className="token-badge__item">↑{stats.totalIn.toLocaleString()}</span>
+      <span className="token-badge__item">↓{stats.totalOut.toLocaleString()}</span>
+      {stats.cacheRead > 0 && (
+        <span className="token-badge__item token-badge__cache" title="Tokens served from cache (90% cheaper)">
+          💾{cacheHitPct}%
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(STORAGE_KEY) || '');
   const [apiKeyError, setApiKeyError] = useState('');
@@ -15,12 +33,25 @@ export default function App() {
   const [roadmap, setRoadmap] = useState(null);
   const [loadingRoadmap, setLoadingRoadmap] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('');
+  const [genProgress, setGenProgress] = useState(0); // 0–100
 
   const [errors, setErrors] = useState([]);
 
   const [selectedNode, setSelectedNode] = useState(null);
   const [explanations, setExplanations] = useState({});
   const [loadingExplanation, setLoadingExplanation] = useState(false);
+
+  const [tokenStats, setTokenStats] = useState({ totalIn: 0, totalOut: 0, cacheRead: 0, cacheWrite: 0 });
+
+  function addTokens(usage) {
+    if (!usage) return;
+    setTokenStats(prev => ({
+      totalIn:    prev.totalIn    + (usage.input_tokens  || 0),
+      totalOut:   prev.totalOut   + (usage.output_tokens || 0),
+      cacheRead:  prev.cacheRead  + (usage.cache_read_input_tokens    || 0),
+      cacheWrite: prev.cacheWrite + (usage.cache_creation_input_tokens || 0),
+    }));
+  }
 
   function pushError(msg) {
     const id = Date.now();
@@ -37,12 +68,17 @@ export default function App() {
   async function handleGenerate(inputTopic) {
     setTopic(inputTopic);
     setSelectedNode(null);
-    setExplanations({});   // evict cache on new roadmap
+    setExplanations({});
     setLoadingRoadmap(true);
     setLoadingStatus('Generating roadmap…');
+    setGenProgress(0);
     try {
-      const result = await generateRoadmap(inputTopic, apiKey);
+      const { roadmap: result, usage } = await generateRoadmap(inputTopic, apiKey, (tokens, max) => {
+        setGenProgress(Math.min(95, Math.round((tokens / max) * 100)));
+      });
       setRoadmap(result);
+      addTokens(usage);
+      setGenProgress(100);
     } catch (err) {
       if (err.message?.includes('401') || err.message?.includes('authentication')) {
         setApiKeyError('Invalid API key. Please check and re-enter it.');
@@ -54,12 +90,12 @@ export default function App() {
     } finally {
       setLoadingRoadmap(false);
       setLoadingStatus('');
+      setTimeout(() => setGenProgress(0), 600);
     }
   }
 
   async function handleNodeClick(node) {
     setSelectedNode(node);
-    // Use cached explanation — only fetch if none exist yet
     if ((explanations[node.id] || []).length > 0) return;
     await fetchExplanation(node.id, node.data.label);
   }
@@ -69,7 +105,7 @@ export default function App() {
     setLoadingStatus(`Loading: ${nodeLabel}…`);
     let accumulated = '';
     try {
-      await explainNode(topic, nodeLabel, apiKey, (chunk) => {
+      const { usage } = await explainNode(topic, nodeLabel, apiKey, (chunk) => {
         accumulated += chunk;
         setExplanations(prev => {
           const history = prev[nodeId] || [];
@@ -93,6 +129,7 @@ export default function App() {
           [nodeId]: history.map((e, i) => i === history.length - 1 ? { ...e, streaming: false } : e),
         };
       });
+      addTokens(usage);
     } catch (err) {
       pushError(err.message || 'Failed to fetch explanation.');
     } finally {
@@ -119,6 +156,7 @@ export default function App() {
       <header className="app-header">
         <span className="app-logo">roadmapz</span>
         <TopicInput onGenerate={handleGenerate} loading={loadingRoadmap} />
+        <TokenBadge stats={tokenStats} />
         <button
           className="change-key-btn"
           onClick={() => { setApiKey(''); localStorage.removeItem(STORAGE_KEY); }}
@@ -129,7 +167,10 @@ export default function App() {
 
       {isBusy && (
         <div className="progress-bar-track">
-          <div className="progress-bar-fill" />
+          <div
+            className={genProgress > 0 ? 'progress-bar-fill progress-bar-fill--real' : 'progress-bar-fill'}
+            style={genProgress > 0 ? { width: `${genProgress}%` } : undefined}
+          />
           {loadingStatus && <span className="progress-label">{loadingStatus}</span>}
         </div>
       )}
