@@ -1,3 +1,5 @@
+import { Handle, Position } from '@xyflow/react';
+
 const LEVEL_STYLES = {
   beginner:     { bg: '#f0fdf4', border: '#86efac', text: '#15803d', badge: '#dcfce7', badgeText: '#166534' },
   intermediate: { bg: '#eff6ff', border: '#93c5fd', text: '#1d4ed8', badge: '#dbeafe', badgeText: '#1e40af' },
@@ -33,6 +35,8 @@ export default function TopicNode({ data, selected }) {
         justifyContent: 'center',
       }}
     >
+      {/* Handles are required by React Flow for edge routing; CSS hides them visually */}
+      <Handle type="target" position={Position.Top} />
       <span style={{ lineHeight: 1.3 }}>{data.label}</span>
       <span style={{
         fontSize: 9,
@@ -46,6 +50,7 @@ export default function TopicNode({ data, selected }) {
       }}>
         {data.level || 'beginner'}
       </span>
+      <Handle type="source" position={Position.Bottom} />
     </div>
   );
 }
