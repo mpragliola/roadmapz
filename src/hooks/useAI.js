@@ -2,6 +2,8 @@ import { streamText, Output } from 'ai';
 import { resolveConfig } from '../providers/index.js';
 import { roadmapSchema } from '../utils/roadmapSchema.js';
 
+const EXPECTED_SECTIONS = 7; // midpoint of the "5 to 8 sections" system-prompt rule
+
 const SECTION_COLORS = [
   '#e8f4fd',
   '#fef9e7',
@@ -57,8 +59,6 @@ export function normalizeUsage(usage, metadata) {
 export async function generateRoadmap(topic, context, onProgress) {
   const { provider, model } = resolveConfig();
   const contextLine = context ? `\n\nAdditional context from the user: ${context}` : '';
-
-  const EXPECTED_SECTIONS = 6;
 
   const result = streamText({
     model: provider(model),

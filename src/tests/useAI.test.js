@@ -112,7 +112,7 @@ describe('generateRoadmap', () => {
 
     expect(calls.some((c) => c.filled === 1)).toBe(true);
     expect(calls.some((c) => c.filled === 2)).toBe(true);
-    expect(calls.every((c) => c.total === 6)).toBe(true);
+    expect(calls.every((c) => c.total === 7)).toBe(true);
   });
 
   it('returns normalised usage', async () => {
