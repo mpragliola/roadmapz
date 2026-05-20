@@ -1,12 +1,12 @@
 import { useState, useRef } from 'react';
 import { marked } from 'marked';
-import ApiKeyModal from './components/ApiKeyModal.jsx';
+import ConfigErrorPage from './components/ConfigErrorPage.jsx';
 import TopicInput from './components/TopicInput.jsx';
 import RoadmapCanvas from './components/RoadmapCanvas.jsx';
 import ExplanationPanel from './components/ExplanationPanel.jsx';
-import { generateRoadmap, explainNode, MODELS } from './hooks/useClaude.js';
+import { generateRoadmap, explainNode } from './hooks/useAI.js';
+import { resolveConfig } from './providers/index.js';
 
-const STORAGE_KEY = 'roadmapz_api_key';
 const SAVE_VERSION = 1;
 
 function TokenBadge({ stats }) {
@@ -27,24 +27,8 @@ function TokenBadge({ stats }) {
   );
 }
 
-function ModelSelector({ value, onChange, disabled }) {
-  const selected = MODELS.find(m => m.id === value);
-  return (
-    <div className="model-selector" title={selected?.description}>
-      <select value={value} onChange={e => onChange(e.target.value)} disabled={disabled}>
-        {MODELS.map(m => (
-          <option key={m.id} value={m.id}>{m.label}</option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
 export default function App() {
-  const [apiKey, setApiKey] = useState(() =>
-    import.meta.env.VITE_ANTHROPIC_API_KEY || localStorage.getItem(STORAGE_KEY) || ''
-  );
-  const [apiKeyError, setApiKeyError] = useState('');
+  const aiConfig = resolveConfig();
 
   const [topic, setTopic] = useState('');
   const [roadmap, setRoadmap] = useState(null);
@@ -59,7 +43,6 @@ export default function App() {
   const [loadingExplanation, setLoadingExplanation] = useState(false);
 
   const [tokenStats, setTokenStats] = useState({ totalIn: 0, totalOut: 0, cacheRead: 0, cacheWrite: 0 });
-  const [model, setModel] = useState(MODELS[1].id);
 
   const loadFileRef = useRef(null);
 
@@ -79,12 +62,6 @@ export default function App() {
     setTimeout(() => setErrors(prev => prev.filter(e => e.id !== id)), 6000);
   }
 
-  function saveApiKey(key) {
-    localStorage.setItem(STORAGE_KEY, key);
-    setApiKey(key);
-    setApiKeyError('');
-  }
-
   // ── Generation ─────────────────────────────────────────────────────────────
 
   async function handleGenerate(inputTopic, inputContext) {
@@ -96,21 +73,14 @@ export default function App() {
     setGenProgress(0);
     try {
       const { roadmap: result, usage } = await generateRoadmap(
-        inputTopic, inputContext, apiKey,
+        inputTopic, inputContext,
         (chars, est) => setGenProgress(Math.min(95, Math.round((chars / est) * 100))),
-        model
       );
       setRoadmap(result);
       addTokens(usage);
       setGenProgress(100);
     } catch (err) {
-      if (err.message?.includes('401') || err.message?.includes('authentication')) {
-        setApiKeyError('Invalid API key. Please check and re-enter it.');
-        setApiKey('');
-        localStorage.removeItem(STORAGE_KEY);
-      } else {
-        pushError(err.message || 'Failed to generate roadmap.');
-      }
+      pushError(err.message || 'Failed to generate roadmap.');
     } finally {
       setLoadingRoadmap(false);
       setLoadingStatus('');
@@ -134,7 +104,7 @@ export default function App() {
     setLoadingStatus(`Generating: ${nodeLabel}…`);
     let accumulated = '';
     try {
-      const { usage } = await explainNode(topic, nodeLabel, apiKey, (chunk) => {
+      const { usage } = await explainNode(topic, nodeLabel, (chunk) => {
         accumulated += chunk;
         setExplanations(prev => {
           const history = prev[nodeId] || [];
@@ -144,7 +114,7 @@ export default function App() {
           }
           return { ...prev, [nodeId]: [...history, { timestamp: new Date().toISOString(), content: accumulated, streaming: true }] };
         });
-      }, model);
+      });
       setExplanations(prev => {
         const history = prev[nodeId] || [];
         return { ...prev, [nodeId]: history.map((e, i) => i === history.length - 1 ? { ...e, streaming: false } : e) };
@@ -171,7 +141,6 @@ export default function App() {
       version: SAVE_VERSION,
       savedAt: new Date().toISOString(),
       topic,
-      model,
       roadmap,
       explanations,
     };
@@ -199,7 +168,6 @@ export default function App() {
         setRoadmap(data.roadmap);
         setExplanations(data.explanations || {});
         setSelectedNode(null);
-        if (data.model && MODELS.find(m => m.id === data.model)) setModel(data.model);
       } catch {
         pushError('Failed to load file — invalid format.');
       }
@@ -219,8 +187,8 @@ export default function App() {
   const selectedHistory = selectedNode ? (explanations[selectedNode.id] || []) : [];
   const isBusy = loadingRoadmap || loadingExplanation;
 
-  if (!apiKey) {
-    return <ApiKeyModal onSave={saveApiKey} error={apiKeyError} />;
+  if (aiConfig.error) {
+    return <ConfigErrorPage error={aiConfig.error} />;
   }
 
   return (
@@ -228,7 +196,6 @@ export default function App() {
       <header className="app-header">
         <span className="app-logo">roadmapz</span>
         <TopicInput onGenerate={handleGenerate} loading={loadingRoadmap} />
-        <ModelSelector value={model} onChange={setModel} disabled={isBusy} />
         <TokenBadge stats={tokenStats} />
         <div className="header-actions">
           <button className="action-btn" onClick={handleSave} disabled={!roadmap} title="Save roadmap">
@@ -242,14 +209,6 @@ export default function App() {
           </button>
           <input ref={loadFileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleFileChange} />
         </div>
-        {!import.meta.env.VITE_ANTHROPIC_API_KEY && (
-          <button
-            className="change-key-btn"
-            onClick={() => { setApiKey(''); localStorage.removeItem(STORAGE_KEY); }}
-          >
-            API Key
-          </button>
-        )}
       </header>
 
       {isBusy && (
