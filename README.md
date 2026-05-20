@@ -4,6 +4,11 @@ A fun little toy that uses Claude to generate interactive learning roadmaps on a
 
 Type a subject, pick a model, and get a visual node-based roadmap with explanations for each topic. That's it.
 
+### Features 
+
+- LLM-generated roadmap and topic explanations
+- can cache explanation and keep history of generations
+
 ## Stack
 
 - React + Vite
