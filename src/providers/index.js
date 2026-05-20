@@ -14,7 +14,7 @@ export const PROVIDER_REGISTRY = {
     keyVar: 'VITE_OPENAI_API_KEY',
   },
   google: {
-    createProvider: (apiKey) => createGoogleGenerativeAI({ apiKey }),
+    createProvider: (apiKey) => createGoogleGenerativeAI({ apiKey, dangerouslyAllowBrowser: true }),
     defaultModel: 'gemini-2.0-flash',
     keyVar: 'VITE_GOOGLE_API_KEY',
   },

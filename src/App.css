@@ -100,7 +100,7 @@ body {
 
 .topic-input input:focus { border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,0.12); }
 
-.topic-input button, .change-key-btn {
+.topic-input button {
   padding: 7px 16px;
   background: #0969da;
   color: #fff;
@@ -117,8 +117,6 @@ body {
 
 .topic-input button:disabled { background: #6e7781; cursor: not-allowed; }
 
-.change-key-btn { background: #f6f8fa; color: #57606a; border: 1px solid #d0d7de; }
-.change-key-btn:hover { background: #eaeef2; }
 
 .context-toggle-btn {
   padding: 7px 10px;
@@ -148,20 +146,6 @@ body {
 }
 .context-textarea:focus { border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,0.12); }
 
-/* Model selector */
-.model-selector select {
-  padding: 6px 10px;
-  border: 1px solid #d0d7de;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #1a1a1a;
-  background: #f6f8fa;
-  cursor: pointer;
-  outline: none;
-}
-.model-selector select:hover:not(:disabled) { background: #eaeef2; }
-.model-selector select:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Token badge */
 .token-badge {
@@ -349,52 +333,6 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* Modal */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal {
-  background: #fff;
-  border-radius: 10px;
-  padding: 32px;
-  width: 420px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-}
-
-.modal h2 { font-size: 18px; margin-bottom: 8px; }
-.modal p { font-size: 13px; color: #57606a; margin-bottom: 20px; }
-
-.modal input {
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid #d0d7de;
-  border-radius: 6px;
-  font-size: 14px;
-  margin-bottom: 8px;
-  outline: none;
-}
-.modal input:focus { border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,0.12); }
-
-.modal button {
-  width: 100%;
-  padding: 9px;
-  background: #0969da;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 4px;
-}
-.modal-error { color: #cf222e; font-size: 13px; margin-bottom: 8px; }
 
 /* Toast notifications */
 .toast-stack {

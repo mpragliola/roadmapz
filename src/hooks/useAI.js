@@ -71,6 +71,9 @@ export async function generateRoadmap(topic, context, onProgress) {
       },
     ],
     maxTokens: 4096,
+    providerOptions: {
+      anthropic: { cacheControl: { type: 'ephemeral' } },
+    },
   });
 
   let raw = '';
@@ -100,6 +103,9 @@ export async function explainNode(topic, nodeLabel, onChunk) {
       },
     ],
     maxTokens: 1024,
+    providerOptions: {
+      anthropic: { cacheControl: { type: 'ephemeral' } },
+    },
   });
 
   for await (const chunk of result.textStream) {

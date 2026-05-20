@@ -9,6 +9,8 @@ import { resolveConfig } from './providers/index.js';
 
 const SAVE_VERSION = 1;
 
+const aiConfig = resolveConfig();
+
 function TokenBadge({ stats }) {
   if (!stats.totalIn && !stats.totalOut) return null;
   const cacheHitPct = stats.totalIn > 0
@@ -28,8 +30,6 @@ function TokenBadge({ stats }) {
 }
 
 export default function App() {
-  const aiConfig = resolveConfig();
-
   const [topic, setTopic] = useState('');
   const [roadmap, setRoadmap] = useState(null);
   const [loadingRoadmap, setLoadingRoadmap] = useState(false);
