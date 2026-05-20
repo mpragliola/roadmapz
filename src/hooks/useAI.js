@@ -1,35 +1,29 @@
-import { streamText } from 'ai';
+import { streamText, Output } from 'ai';
 import { resolveConfig } from '../providers/index.js';
-import { parseRoadmapJson } from '../utils/parseRoadmap.js';
+import { roadmapSchema } from '../utils/roadmapSchema.js';
+
+const SECTION_COLORS = [
+  '#e8f4fd',
+  '#fef9e7',
+  '#e8f8f5',
+  '#fdf2f8',
+  '#f4ecf7',
+  '#fef5e4',
+  '#eafaf1',
+  '#fdedec',
+];
 
 const ROADMAP_SYSTEM = `You are a curriculum designer creating structured learning roadmaps.
 
-This roadmap must represent a realistic, actionable career or learning progression — from 
-absolute beginner concepts to advanced mastery. Structure it the way an experienced practitioner 
+This roadmap must represent a realistic, actionable career or learning progression — from
+absolute beginner concepts to advanced mastery. Structure it the way an experienced practitioner
 would guide a newcomer, following the same philosophy as roadmap.sh.
-
-Return ONLY a valid JSON object matching this exact schema. No markdown fences, no explanation, 
-no text outside the JSON:
-
-{
-  "title": "string",
-  "sections": [
-    {
-      "id": "s1",
-      "label": "string",
-      "nodes": [
-        { "id": "n1", "label": "string (max 40 chars)", "level": "beginner" }
-      ]
-    }
-  ],
-  "edges": [{ "source": "n1", "target": "n2" }]
-}
 
 Node level values — use exactly one per node:
 - "beginner"      — foundational concepts everyone must learn first
 - "intermediate"  — builds on basics, required for serious real-world work
 - "advanced"      — deep expertise for specialists or senior practitioners
-- "optional"      — enrichment or broadening topics, "nice to have" but not 
+- "optional"      — enrichment or broadening topics, "nice to have" but not
                     on the critical path
 
 Rules:
@@ -64,6 +58,8 @@ export async function generateRoadmap(topic, context, onProgress) {
   const { provider, model } = resolveConfig();
   const contextLine = context ? `\n\nAdditional context from the user: ${context}` : '';
 
+  const EXPECTED_SECTIONS = 6;
+
   const result = streamText({
     model: provider(model),
     system: ROADMAP_SYSTEM,
@@ -71,28 +67,31 @@ export async function generateRoadmap(topic, context, onProgress) {
       {
         role: 'user',
         content: `Generate a learning roadmap for: "${topic}"
-        Model the structure after how roadmap.sh organises "${topic}" — realistic and 
+        Model the structure after how roadmap.sh organises "${topic}" — realistic and
         battle-tested.${contextLine}`,
       },
     ],
+    output: Output.object({ schema: roadmapSchema }),
     maxTokens: 4096,
     providerOptions: {
       anthropic: { cacheControl: { type: 'ephemeral' } },
     },
   });
 
-  let raw = '';
-  const EST_CHARS = 2200;
-
-  for await (const chunk of result.textStream) {
-    raw += chunk;
-    onProgress?.(Math.min(raw.length, EST_CHARS), EST_CHARS);
+  for await (const partial of result.partialOutputStream) {
+    const filled = partial.sections?.filter((s) => s?.nodes?.length > 0).length ?? 0;
+    onProgress?.(filled, EXPECTED_SECTIONS);
   }
+
+  const roadmap = await result.object;
+  roadmap.sections.forEach((s, i) => {
+    s.color = SECTION_COLORS[i % SECTION_COLORS.length];
+  });
 
   const usage = await result.usage;
   const metadata = await result.experimental_providerMetadata;
 
-  return { roadmap: parseRoadmapJson(raw), usage: normalizeUsage(usage, metadata) };
+  return { roadmap, usage: normalizeUsage(usage, metadata) };
 }
 
 export async function explainNode(topic, nodeLabel, onChunk) {
