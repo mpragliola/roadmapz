@@ -1,8 +1,10 @@
 # roadmapZ
 
-A fun little toy that uses Claude to generate interactive learning roadmaps on any topic — inspired by [roadmap.sh](https://roadmap.sh).
+A fun little toy that leverages LLMs to generate interactive learning roadmaps on any topic.
+Inspired by [roadmap.sh](https://roadmap.sh).
 
-Type a subject, pick a model, and get a visual node-based roadmap with explanations for each topic. That's it.
+Type a learning subject, pick a model, and get a visual node-based roadmap with explanations 
+for each topic and prioritization.
 
 ### Features 
 
@@ -13,7 +15,14 @@ Type a subject, pick a model, and get a visual node-based roadmap with explanati
 
 - React + Vite
 - React Flow (canvas)
-- Anthropic SDK (streamed responses)
+
+### Usage of LLMs
+
+- It was initially built for **Anthropic (Claude)**, but now abstracts the LLMs via **Vercel**,
+  broadening the choice to **OpenAI (ChatGPT)**, **Google (Gemini)**
+- Model choice possible
+- Makes use of **system/user prompts**, **structured output** features (JSON) via **Zod** schema
+- Keeps track of input/output/cached token usage
 
 ## Run it
 
@@ -22,8 +31,6 @@ npm install
 npm run dev
 ```
 
-You'll need an Anthropic API key. Set `VITE_ANTHROPIC_API_KEY` in a `.env` file or enter it in the UI.
+> [!WARNING]
+> Remember to set your variables (provider, API key, ...) in a `.env` file.
 
----
-
-*Built for fun while playing with Claude Code and the Claude API.*

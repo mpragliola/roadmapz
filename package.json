@@ -19,7 +19,8 @@
     "ai": "^6.0.185",
     "marked": "^18.0.3",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.6",
