@@ -4,7 +4,8 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 export const PROVIDER_REGISTRY = {
   anthropic: {
-    createProvider: (apiKey) => createAnthropic({ apiKey, dangerouslyAllowBrowser: true }),
+    createProvider: (apiKey) =>
+      createAnthropic({ apiKey, dangerouslyAllowBrowser: true, structuredOutputMode: 'outputFormat' }),
     defaultModel: 'claude-sonnet-4-6',
     keyVar: 'ANTHROPIC_API_KEY',
   },
